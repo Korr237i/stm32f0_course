@@ -42,6 +42,7 @@
 #define __CORE_CM0_H_GENERIC
 
 #include <stdint.h>
+#include "stm32f051x8.h"
 
 #ifdef __cplusplus
  extern "C" {
