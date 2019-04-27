@@ -7,43 +7,59 @@
  *      #define TURN_ON_CONTACT_DEBOUNCER
  */
 
-#include "core_cm0.h"
-#include "stm32f051x8.h"
 #include "stm32f0xx_ll_rcc.h"
 #include "stm32f0xx_ll_system.h"
 #include "stm32f0xx_ll_bus.h"
 #include "stm32f0xx_ll_gpio.h"
 #include "stm32f0xx_ll_exti.h"
+#include "stm32f0xx_ll_utils.h"
+#include "stm32f0xx_ll_cortex.h"
 
 #include "sysconfig.h"
 #include "segment.h"
 
+#define HCLK_FREC   48000000
 
-uint32_t counter = 0;
+
+uint32_t time_cnt = 0;
+uint32_t time_cnt_bcd = 0;
+uint8_t time_show_presc = 0;
+
 uint32_t button_pressed = 0;
+
+uint32_t systick_cnt = 0;
+const uint32_t systick_cnt_top = 1000;
 
 
 void EXTI0_1_IRQHandler()
 {
-    button_pressed = 1;
-    static uint32_t debouncer_clk = 0;
+    // button_pressed = 1;
 
-    while(debouncer_clk < 5)
+    uint32_t time0 = systick_cnt;
+    static uint32_t time1 = 0;
+
+    if ((time1 - time0) > 100)
+        LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_8);
+
+    time1 = systick_cnt;
+
+    // button_pressed = 0;
+
+    LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_0);
+    // LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_1);
+}
+
+void SysTick_Handler(void)
+{
+    systick_cnt = (systick_cnt + 1) % systick_cnt_top;
+
+
+    if (!systick_cnt)
     {
-      if (button_pressed) {
-          debouncer_clk++;
-          delay_10ms();
-      }
+        time_cnt = (time_cnt + 1) % 10000;
+        time_cnt_bcd = dec2hex(time_cnt);
+        LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_9);
     }
-
-    LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_8);
-
-    button_pressed = 0;
-    debouncer_clk = 0;
-
-    counter++;
-
-    LL_EXTI_ClearFlag_0_31(LL_SYSCFG_EXTI_LINE0);
 }
 
 
@@ -51,16 +67,8 @@ int main(void)
 {
     rcc_config();
     gpio_config();
-
-    LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOC);
-    LL_GPIO_SetPinMode(GPIOC, LL_GPIO_PIN_8, LL_GPIO_MODE_INPUT);
-    LL_SYSCFG_SetEXTISource(LL_SYSCFG_EXTI_PORTA, LL_SYSCFG_EXTI_LINE0);
-
-    LL_EXTI_EnableIT_0_31(LL_SYSCFG_EXTI_LINE0);
-    LL_EXTI_EnableFallingTrig_0_31(LL_SYSCFG_EXTI_LINE0);
-
-    NVIC_EnableIRQ(EXTI0_1_IRQn);
-    NVIC_SetPriority(EXTI0_1_IRQn, 64);
+    exti_config();
+    systick_config(HCLK_FREC, systick_cnt_top);
 
     /*
      * Turn on indicator
@@ -72,7 +80,16 @@ int main(void)
 
     while(1)
     {
-        run_indicator(counter);
+        uint32_t _time0 = systick_cnt;
+        // uint32_t _timex = _time0;
+
+        for (int i = 0; i < 4; i++)
+        {
+            while((systick_cnt - _time0) < 5) {}
+
+            dyn_indicate(time_cnt_bcd);
+            _time0 = systick_cnt;
+        }
     }
 
     return 0;
