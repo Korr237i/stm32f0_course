@@ -82,7 +82,12 @@ void gpio_config()
      * Init port for USER button
      */
     LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOA);
-    LL_GPIO_SetPinMode(GPIOC, LL_GPIO_PIN_0, LL_GPIO_MODE_INPUT);
+    // LL_GPIO_SetPinMode(GPIOC, LL_GPIO_PIN_0, LL_GPIO_MODE_INPUT);
+    /*
+     * Encoder
+     */
+    LL_GPIO_SetPinPull(GPIOA, LL_GPIO_PIN_1, LL_GPIO_PULL_DOWN);
+    LL_GPIO_SetPinPull(GPIOA, LL_GPIO_PIN_0, LL_GPIO_PULL_DOWN);
     return;
 }
 
@@ -100,10 +105,10 @@ void exti_config(void)
     LL_EXTI_EnableIT_0_31(LL_EXTI_LINE_0);
 
     LL_EXTI_EnableFallingTrig_0_31(LL_EXTI_LINE_1);
-    // LL_EXTI_EnableRisingTrig_0_31(LL_EXTI_LINE_1);
+    LL_EXTI_EnableRisingTrig_0_31(LL_EXTI_LINE_1);
 
     LL_EXTI_EnableFallingTrig_0_31(LL_EXTI_LINE_0);
-    // LL_EXTI_EnableRisingTrig_0_31(LL_EXTI_LINE_0);
+    LL_EXTI_EnableRisingTrig_0_31(LL_EXTI_LINE_0);
     /*
      * Setting interrupts
      */
